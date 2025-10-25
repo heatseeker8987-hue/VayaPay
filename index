@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Travel Fare & UPI Payment</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f2f2f2;
+      text-align: center;
+    }
+
+    .section {
+      display: none;
+    }
+
+    #tripPage {
+      display: block;
+    }
+
+    button {
+      padding: 12px 24px;
+      margin: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background-color: #007bff;
+      color: white;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    canvas {
+      background: #fff;
+      padding: 10px;
+      border: 1px solid #ccc;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    #upiPage h2 {
+      margin-bottom: 5px;
+      color: #333;
+    }
+
+    #displayAmount {
+      font-size: 36px;
+      color: green;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    #upiDisplay {
+      font-size: 18px;
+      margin: 10px 0;
+      font-weight: 500;
+      color: #555;
+      min-height: 20px;
+    }
+
+    #qrcode {
+      margin: 20px auto;
+      width: fit-content;
+    }
+
+    #returnHomeBtn {
+      background: gold;
+      color: black;
+      font-weight: bold;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+    }
+
+    #returnHomeBtn:hover {
+      background: darkgoldenrod;
+    }
+
+    select, input {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: calc(100% - 24px);
+      max-width: 300px;
+    }
+
+    #upiBankSelect {
+      margin-bottom: 15px;
+      max-width: 300px;
+      width: 100%;
+    }
+
+    #hiddenInputs {
+      display: none;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #tripDetails {
+      margin-top: 20px;
+      font-size: 1.1em;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+<div id="tripPage" class="section">
+  <h2>🚗 Travel Fare</h2>
+  <button id="startBtn">Start Trip</button>
+  <button id="endBtn" class="hidden">End Trip</button>
+  <div id="output">Click "Start Trip" to begin.</div>
+  <div id="tripDetails"></div>
+</div>
+
+<div id="upiPage" class="section">
+  <h2>Payments</h2>
+  <div>Amount to be Collected</div>
+  <div id="displayAmount">₹0.00</div>
+
+  <select id="upiBankSelect">
+    <option value="7339519500@ptyes">Paytm - INDB</option>
+    <option value="rmithil03@okhdfcbank">Gpay - UBOI</option>
+    <option value="9489878182@ybl">PhonePe - KVB</option>
+  </select>
+
+  <div id="upiDisplay"></div>
+  <div id="qrcode"></div>
+  <button id="returnHomeBtn">Return Home</button>
+
+  <div id="hiddenInputs">
+    <input type="number" id="amount" readonly />
+  </div>
+</div>
+
+<!-- Scripts at end for safe DOM load -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // --- DOM Elements ---
+    const startBtn = document.getElementById("startBtn");
+    const endBtn = document.getElementById("endBtn");
+    const returnHomeBtn = document.getElementById("returnHomeBtn");
+    const upiBankSelect = document.getElementById("upiBankSelect");
+
+    // Attach event listeners
+    startBtn.addEventListener("click", startTrip);
+    endBtn.addEventListener("click", endTrip);
+    returnHomeBtn.addEventListener("click", resetToTrip);
+    upiBankSelect.addEventListener("change", updateUPIQR);
+
+    // --- Global Variables ---
+    let startCoords = null;
+    let endCoords = null;
+    let startTime = null;
+    let endTime = null;
+
+    function startTrip() {
+      document.getElementById("output").innerText = "Getting current location...";
+      navigator.geolocation.getCurrentPosition(position => {
+        startCoords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        startTime = Date.now();
+        document.getElementById("output").innerText = "Trip started! Drive safely.";
+        startBtn.classList.add("hidden");
+        endBtn.classList.remove("hidden");
+        document.getElementById("tripDetails").innerText = "Trip started at: " + new Date(startTime).toLocaleTimeString();
+      }, error => {
+        alert("Error getting location: " + error.message);
+        document.getElementById("output").innerText = "Location access denied or failed.";
+      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    }
+
+    function endTrip() {
+      if (!startCoords || !startTime) {
+        alert("Please start the trip first.");
+        return;
+      }
+
+      document.getElementById("output").innerText = "Getting end location...";
+      navigator.geolocation.getCurrentPosition(position => {
+        endCoords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        endTime = Date.now();
+
+        const distance = getDistance(startCoords.lat, startCoords.lng, endCoords.lat, endCoords.lng);
+        const roundedDistance = parseFloat(distance.toFixed(2));
+        const timeTakenMinutes = (endTime - startTime) / (1000 * 60);
+        const roundedTimeMinutes = parseFloat(timeTakenMinutes.toFixed(2));
+
+        document.getElementById("tripDetails").innerText =
+          `Distance: ${roundedDistance} km, Time: ${roundedTimeMinutes} minutes`;
+
+        let distanceFare = roundedDistance * 10;
+        let timeFare = roundedTimeMinutes * 0.75;
+        let dropCharge = 10;
+        let fare = Math.max(distanceFare + timeFare + dropCharge, 20).toFixed(2);
+
+        document.getElementById("amount").value = fare;
+
+        switchPage('upiPage');
+        updateUPIQR();
+      }, error => {
+        alert("Error getting end location: " + error.message);
+        document.getElementById("output").innerText = "Failed to get end location.";
+      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    }
+
+    function getDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = deg2rad(lat2 - lat1);
+      const dLon = deg2rad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function deg2rad(deg) {
+      return deg * (Math.PI / 180);
+    }
+
+    function switchPage(pageId) {
+      document.querySelectorAll(".section").forEach(div => div.style.display = "none");
+      document.getElementById(pageId).style.display = "block";
+    }
+
+    function updateUPIQR() {
+      const upiId = document.getElementById("upiBankSelect").value.trim();
+      const amount = document.getElementById("amount").value;
+      document.getElementById("upiDisplay").innerText = '';
+      document.getElementById("displayAmount").innerText = "₹" + parseFloat(amount).toFixed(2);
+      generateQRCode(upiId, amount);
+    }
+
+    function generateQRCode(upiId, amount) {
+      const qrContainer = document.getElementById('qrcode');
+      qrContainer.innerHTML = '';
+
+      if (!upiId.includes('@')) {
+        alert('Invalid UPI ID');
+        return;
+      }
+
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        alert('Invalid amount');
+        return;
+      }
+
+      const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=Travel Fare Payment&am=${parsedAmount.toFixed(2)}&cu=INR`;
+
+      const canvas = document.createElement('canvas');
+      qrContainer.appendChild(canvas);
+
+      QRCode.toCanvas(canvas, upiLink, function (error) {
+        if (error) {
+          console.error("QR Code generation failed:", error);
+          alert('QR Code generation failed.');
+        }
+      });
+    }
+
+    function resetToTrip() {
+      document.getElementById("qrcode").innerHTML = '';
+      document.getElementById("upiBankSelect").selectedIndex = 0;
+      document.getElementById("amount").value = '';
+      document.getElementById("output").innerText = "Click 'Start Trip' to begin.";
+      document.getElementById("tripDetails").innerText = "";
+      document.getElementById("upiDisplay").innerText = '';
+      document.getElementById("displayAmount").innerText = "₹0.00";
+
+      startCoords = null;
+      endCoords = null;
+      startTime = null;
+      endTime = null;
+
+      startBtn.classList.remove("hidden");
+      endBtn.classList.add("hidden");
+
+      switchPage('tripPage');
+    }
+  });
+</script>
+</body>
+</html>
