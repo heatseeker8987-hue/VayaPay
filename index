@@ -1,301 +1,184 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Travel Fare & UPI Payment</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f2f2f2;
-      text-align: center;
-    }
+<meta charset="utf-8" />
+<title>Merged Tools — Excel Cleaner + Decimal Converter</title>
 
-    .section {
-      display: none;
-    }
-
-    #tripPage {
-      display: block;
-    }
-
-    button {
-      padding: 12px 24px;
-      margin: 10px;
-      font-size: 16px;
-      cursor: pointer;
-      border: none;
-      border-radius: 5px;
-      background-color: #007bff;
-      color: white;
-      transition: background-color 0.3s ease;
-    }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
-    canvas {
-      background: #fff;
-      padding: 10px;
-      border: 1px solid #ccc;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-
-    #upiPage h2 {
-      margin-bottom: 5px;
-      color: #333;
-    }
-
-    #displayAmount {
-      font-size: 36px;
-      color: green;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-
-    #upiDisplay {
-      font-size: 18px;
-      margin: 10px 0;
-      font-weight: 500;
-      color: #555;
-      min-height: 20px;
-    }
-
-    #qrcode {
-      margin: 20px auto;
-      width: fit-content;
-    }
-
-    #returnHomeBtn {
-      background: gold;
-      color: black;
-      font-weight: bold;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 6px;
-    }
-
-    #returnHomeBtn:hover {
-      background: darkgoldenrod;
-    }
-
-    select, input {
-      padding: 10px;
-      font-size: 16px;
-      margin: 5px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      width: calc(100% - 24px);
-      max-width: 300px;
-    }
-
-    #upiBankSelect {
-      margin-bottom: 15px;
-      max-width: 300px;
-      width: 100%;
-    }
-
-    #hiddenInputs {
-      display: none;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    #tripDetails {
-      margin-top: 20px;
-      font-size: 1.1em;
-      color: #666;
-    }
-  </style>
+<style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 900px; margin: auto; }
+    label { display:block; margin-top: 8px; font-weight:600; }
+    input[type="number"], textarea, select { width:100%; padding:8px; margin-top:6px; box-sizing:border-box; }
+    textarea { height:200px; resize:vertical; }
+    .controls { margin-top:10px; display:flex; gap:10px; align-items:center; }
+    button { padding:8px 14px; cursor:pointer; }
+    .output { background:#f7f7f7; padding:12px; white-space:pre; margin-top:14px; border:1px solid #e0e0e0; }
+    .note { color:#555; font-size:0.95rem; margin-top:6px; }
+    .tool-section { display:none; margin-top:20px; }
+    .visible { display:block; }
+    .row { display:flex; align-items:center; gap:15px; }
+    .small-input { width:80px; }
+</style>
 </head>
 <body>
 
-<div id="tripPage" class="section">
-  <h2>🚗 Travel Fare</h2>
-  <button id="startBtn">Start Trip</button>
-  <button id="endBtn" class="hidden">End Trip</button>
-  <div id="output">Click "Start Trip" to begin.</div>
-  <div id="tripDetails"></div>
-</div>
+<h2>Select Tool</h2>
 
-<div id="upiPage" class="section">
-  <h2>Payments</h2>
-  <div>Amount to be Collected</div>
-  <div id="displayAmount">₹0.00</div>
+<select id="toolSelector">
+    <option value="excel">Excel Cleaner — Live Preview</option>
+    <option value="decimal">Number Auto-Decimal Converter</option>
+</select>
 
-  <select id="upiBankSelect">
-    <option value="7339519500@ptyes">Paytm - INDB</option>
-    <option value="rmithil03@okhdfcbank">Gpay - UBOI</option>
-    <option value="9489878182@ybl">PhonePe - KVB</option>
-  </select>
+<!-- Excel Cleaner -->
+<div id="excelTool" class="tool-section visible">
 
-  <div id="upiDisplay"></div>
-  <div id="qrcode"></div>
-  <button id="returnHomeBtn">Return Home</button>
+  <h2>Excel Cleaner — Live Preview</h2>
 
-  <div id="hiddenInputs">
-    <input type="number" id="amount" readonly />
+  <label for="colCount">Number of columns:</label>
+  <input id="colCount" type="number" value="7" min="1" />
+
+  <label for="excelInput">Paste your values:</label>
+  <textarea id="excelInput" placeholder="Paste messy values here..."></textarea>
+
+  <div class="controls">
+    <button id="copyBtn">Copy Output</button>
+    <div class="note">Live preview updates automatically.</div>
   </div>
+
+  <h3>Live Cleaned Output:</h3>
+  <div id="output" class="output"></div>
+
 </div>
 
-<!-- Scripts at end for safe DOM load -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<!-- Decimal Converter Tool -->
+<div id="decimalTool" class="tool-section">
+
+<div class="row">
+    <h2>Number Auto-Decimal Converter</h2>
+    <input id="decimalCount" type="number" class="small-input" value="2" min="1">
+</div>
+
+<textarea id="input" rows="6" placeholder="Enter numbers like 104 125 368"></textarea>
+
+<div class="box">
+    <h3>Converted Output:</h3>
+    <textarea id="output2" rows="6" readonly></textarea>
+</div>
+
+</div>
+
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    // --- DOM Elements ---
-    const startBtn = document.getElementById("startBtn");
-    const endBtn = document.getElementById("endBtn");
-    const returnHomeBtn = document.getElementById("returnHomeBtn");
-    const upiBankSelect = document.getElementById("upiBankSelect");
+/* Tool Selector */
+document.getElementById("toolSelector").addEventListener("change", function () {
+    document.getElementById("excelTool").classList.remove("visible");
+    document.getElementById("decimalTool").classList.remove("visible");
 
-    // Attach event listeners
-    startBtn.addEventListener("click", startTrip);
-    endBtn.addEventListener("click", endTrip);
-    returnHomeBtn.addEventListener("click", resetToTrip);
-    upiBankSelect.addEventListener("change", updateUPIQR);
+    if (this.value === "excel") {
+        document.getElementById("excelTool").classList.add("visible");
+    } else {
+        document.getElementById("decimalTool").classList.add("visible");
+    }
+});
 
-    // --- Global Variables ---
-    let startCoords = null;
-    let endCoords = null;
-    let startTime = null;
-    let endTime = null;
+/* Excel Cleaner Logic */
+const inputEl = document.getElementById('excelInput');
+const colEl = document.getElementById('colCount');
+const outEl = document.getElementById('output');
+const copyBtn = document.getElementById('copyBtn');
 
-    function startTrip() {
-      document.getElementById("output").innerText = "Getting current location...";
-      navigator.geolocation.getCurrentPosition(position => {
-        startCoords = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
-        startTime = Date.now();
-        document.getElementById("output").innerText = "Trip started! Drive safely.";
-        startBtn.classList.add("hidden");
-        endBtn.classList.remove("hidden");
-        document.getElementById("tripDetails").innerText = "Trip started at: " + new Date(startTime).toLocaleTimeString();
-      }, error => {
-        alert("Error getting location: " + error.message);
-        document.getElementById("output").innerText = "Location access denied or failed.";
-      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+let debounceTimer = null;
+
+function scheduleClean() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(cleanAndRender, 80);
+}
+
+inputEl.addEventListener('input', scheduleClean);
+inputEl.addEventListener('paste', () => setTimeout(scheduleClean, 20));
+colEl.addEventListener('input', scheduleClean);
+
+function cleanAndRender() {
+    const raw = inputEl.value || '';
+    const colCount = parseInt(colEl.value, 10);
+
+    if (!colCount || colCount <= 0) {
+      outEl.innerText = 'Enter a valid number of columns.';
+      return;
     }
 
-    function endTrip() {
-      if (!startCoords || !startTime) {
-        alert("Please start the trip first.");
-        return;
+    const rows = raw.split(/\r?\n/).filter(r => r.trim() !== '');
+
+    const cleaned = rows.map(row => {
+      let parts = row.split(/\t+|\s{2,}|\s+/);
+
+      let tokens = parts.map(tok => {
+        if (!tok) return '';
+        tok = tok.replace(/,/g, '');
+        tok = tok.replace(/^\.(\d)/, '0.$1');
+        tok = tok.replace(/[^0-9.\-]/g, '');
+        return tok;
+      }).filter(t => t !== '');
+
+      let formatted = tokens.map(t => {
+        const num = parseFloat(t);
+        if (isNaN(num)) return '';
+
+        const rounded = Math.round((num + Number.EPSILON) * 100) / 100;
+
+        if (Math.abs(rounded - Math.round(rounded)) < 1e-9)
+          return String(Math.round(rounded));
+
+        return Number(rounded.toFixed(2)).toString();
+      }).filter(v => v !== '');
+
+      if (formatted.length > colCount) {
+        formatted = formatted.slice(0, colCount);
+      } else {
+        while (formatted.length < colCount) formatted.push('');
       }
 
-      document.getElementById("output").innerText = "Getting end location...";
-      navigator.geolocation.getCurrentPosition(position => {
-        endCoords = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
-        endTime = Date.now();
+      return formatted.join('\t');
+    });
 
-        const distance = getDistance(startCoords.lat, startCoords.lng, endCoords.lat, endCoords.lng);
-        const roundedDistance = parseFloat(distance.toFixed(2));
-        const timeTakenMinutes = (endTime - startTime) / (1000 * 60);
-        const roundedTimeMinutes = parseFloat(timeTakenMinutes.toFixed(2));
+    outEl.innerText = cleaned.join('\n');
+}
 
-        document.getElementById("tripDetails").innerText =
-          `Distance: ${roundedDistance} km, Time: ${roundedTimeMinutes} minutes`;
+cleanAndRender();
 
-        let distanceFare = roundedDistance * 10;
-        let timeFare = roundedTimeMinutes * 0.75;
-        let dropCharge = 10;
-        let fare = Math.max(distanceFare + timeFare + dropCharge, 20).toFixed(2);
-
-        document.getElementById("amount").value = fare;
-
-        switchPage('upiPage');
-        updateUPIQR();
-      }, error => {
-        alert("Error getting end location: " + error.message);
-        document.getElementById("output").innerText = "Failed to get end location.";
-      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(outEl.innerText);
+      copyBtn.innerText = 'Copied!';
+      setTimeout(() => copyBtn.innerText = 'Copy Output', 900);
+    } catch {
+      alert('Copy failed — press Ctrl+C');
     }
+});
 
-    function getDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371;
-      const dLat = deg2rad(lat2 - lat1);
-      const dLon = deg2rad(lon2 - lon1);
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    }
+/* Decimal Auto Converter */
+function convertNumber(num, decimalPlaces) {
+    num = num.trim();
+    if (!num) return "";
 
-    function deg2rad(deg) {
-      return deg * (Math.PI / 180);
-    }
+    num = num.replace(/[^0-9]/g, "");
 
-    function switchPage(pageId) {
-      document.querySelectorAll(".section").forEach(div => div.style.display = "none");
-      document.getElementById(pageId).style.display = "block";
-    }
+    if (num.length <= decimalPlaces) return num;
 
-    function updateUPIQR() {
-      const upiId = document.getElementById("upiBankSelect").value.trim();
-      const amount = document.getElementById("amount").value;
-      document.getElementById("upiDisplay").innerText = '';
-      document.getElementById("displayAmount").innerText = "₹" + parseFloat(amount).toFixed(2);
-      generateQRCode(upiId, amount);
-    }
+    let beforeDecimal = num.slice(0, num.length - decimalPlaces);
+    let afterDecimal = num.slice(-decimalPlaces);
 
-    function generateQRCode(upiId, amount) {
-      const qrContainer = document.getElementById('qrcode');
-      qrContainer.innerHTML = '';
+    return beforeDecimal + "." + afterDecimal;
+}
 
-      if (!upiId.includes('@')) {
-        alert('Invalid UPI ID');
-        return;
-      }
+function updateOutput() {
+    let decimalPlaces = parseInt(document.getElementById("decimalCount").value);
+    let lines = document.getElementById("input").value.split(/[\s,]+/);
+    let converted = lines.map(n => convertNumber(n, decimalPlaces)).join("\n");
+    document.getElementById("output2").value = converted;
+}
 
-      const parsedAmount = parseFloat(amount);
-      if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        alert('Invalid amount');
-        return;
-      }
-
-      const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=Travel Fare Payment&am=${parsedAmount.toFixed(2)}&cu=INR`;
-
-      const canvas = document.createElement('canvas');
-      qrContainer.appendChild(canvas);
-
-      QRCode.toCanvas(canvas, upiLink, function (error) {
-        if (error) {
-          console.error("QR Code generation failed:", error);
-          alert('QR Code generation failed.');
-        }
-      });
-    }
-
-    function resetToTrip() {
-      document.getElementById("qrcode").innerHTML = '';
-      document.getElementById("upiBankSelect").selectedIndex = 0;
-      document.getElementById("amount").value = '';
-      document.getElementById("output").innerText = "Click 'Start Trip' to begin.";
-      document.getElementById("tripDetails").innerText = "";
-      document.getElementById("upiDisplay").innerText = '';
-      document.getElementById("displayAmount").innerText = "₹0.00";
-
-      startCoords = null;
-      endCoords = null;
-      startTime = null;
-      endTime = null;
-
-      startBtn.classList.remove("hidden");
-      endBtn.classList.add("hidden");
-
-      switchPage('tripPage');
-    }
-  });
+document.getElementById("input").addEventListener("input", updateOutput);
+document.getElementById("decimalCount").addEventListener("input", updateOutput);
 </script>
+
 </body>
 </html>
